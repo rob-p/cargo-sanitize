@@ -16,9 +16,9 @@ output path, the new `Cargo.toml` contents will be written directly to `stdout`.
 provide the new file path with the `-o` option.  A standard invocation might look like:
 
 ```
-cargo-sanitize -i Cargo.orig.toml > Cargo.toml
+cargo-sanitize -i Cargo.toml.orig > Cargo.toml
 ```
 
-Here, we are assuming that you have already copied your "source" `Cargo.toml` to the file `Cargo.orig.toml`, and 
+Here, we are assuming that you have already copied your "source" `Cargo.toml` to the file `Cargo.toml.orig`, and 
 this command will then write the sanitized version to the path `Cargo.toml`.
 
