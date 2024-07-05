@@ -1,0 +1,34 @@
+[package]
+name = "cargo-sanitize"
+version = "0.1.0"
+authors = ["Rob Patro"]
+edition = "2021"
+repository = "https://github.com/rob-p/cargo-sanitize"
+description = "Sanitize a Cargo.toml file to remove dependencies outside of the default registry"
+documentation = "https://github.com/"
+
+[dependencies]
+anyhow = "1.0.86"
+clap = { version = "4.5.8", features = ["derive"] }
+toml_edit = "0.22.14"
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+# Config for 'cargo dist'
+[workspace.metadata.dist]
+# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.16.0"
+# CI backends to support
+ci = "github"
+# The installers to generate for each app
+installers = ["shell"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
+# Publish jobs to run in CI
+pr-run-mode = "plan"
+# Whether to install an updater program
+install-updater = true
+
