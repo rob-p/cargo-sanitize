@@ -5,7 +5,14 @@ authors = ["Rob Patro"]
 edition = "2021"
 repository = "https://github.com/rob-p/cargo-sanitize"
 description = "Sanitize a Cargo.toml file to remove dependencies outside of the default registry"
-documentation = "https://github.com/"
+documentation = "https://rob-p.github.io/cargo-sanitize/"
+readme = "README.md"
+homepage = "https://rob-p.github.io/cargo-sanitize/"
+license-file = "LICENSE"
+keywords = ["cargo", "toml", "commands", "sanitize"]
+categories = ["command-line-utilities", "development-tools::cargo-plugins"]
+include = ["/src", "README.md"]
+exclude = ["/docs", "mkdocs.yml"]
 
 [dependencies]
 anyhow = "1.0.86"
