@@ -364,9 +364,9 @@ version of the transformation that <code>cargo publish</code> does to your <code
 <p>To use <code>cargo-sanitize</code>, you simply pass the executable your current <code>Cargo.toml</code> file.  If you provide no 
 output path, the new <code>Cargo.toml</code> contents will be written directly to <code>stdout</code>.  Alternatively, you can 
 provide the new file path with the <code>-o</code> option.  A standard invocation might look like:</p>
-<pre><code>cargo-sanitize -i Cargo.orig.toml &gt; Cargo.toml
+<pre><code>cargo-sanitize -i Cargo.toml.orig &gt; Cargo.toml
 </code></pre>
-<p>Here, we are assuming that you have already copied your "source" <code>Cargo.toml</code> to the file <code>Cargo.orig.toml</code>, and 
+<p>Here, we are assuming that you have already copied your "source" <code>Cargo.toml</code> to the file <code>Cargo.toml.orig</code>, and 
 this command will then write the sanitized version to the path <code>Cargo.toml</code>.</p>
 
 
