@@ -11,8 +11,7 @@ homepage = "https://rob-p.github.io/cargo-sanitize/"
 license-file = "LICENSE"
 keywords = ["cargo", "toml", "commands", "sanitize"]
 categories = ["command-line-utilities", "development-tools::cargo-plugins"]
-include = ["/src", "README.md"]
-exclude = ["/docs", "mkdocs.yml"]
+include = ["/src", "README.md", "!mkdocs.yml", "!/docs"]
 
 [dependencies]
 anyhow = "1.0.86"
