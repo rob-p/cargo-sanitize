@@ -120,7 +120,7 @@ fn get_crate_info_as_json(
     body_res.push(']');
     match serde_json::from_str::<serde_json::Value>(&body_res) {
         Ok(serde_json::Value::Array(a)) => Ok(a),
-        Ok(v) => Err(anyhow!("unexpected JSON types")),
+        Ok(_v) => Err(anyhow!("unexpected JSON types")),
         Err(e) => Err(anyhow!("Invalid JSON : {:?}", e)),
     }
 }
