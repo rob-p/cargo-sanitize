@@ -1,10 +1,12 @@
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use clap::{Parser, ValueEnum};
 use std::fmt;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use toml_edit::{DocumentMut, Value};
 
+#[cfg(feature = "verify_crates")]
+use anyhow::anyhow;
 #[cfg(feature = "verify_crates")]
 use std::time::Duration;
 #[cfg(feature = "verify_crates")]
@@ -73,6 +75,7 @@ fn sanitize_dependency_entry(ent: &mut toml_edit::Value) -> anyhow::Result<bool>
     Ok(did_remove)
 }
 
+#[cfg(feature = "verify_crates")]
 fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
     match ent {
         Value::String(s) => Ok(s.to_string()),
@@ -92,7 +95,6 @@ fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
 
 #[cfg(feature = "verify_crates")]
 fn crate_key(s: String) -> String {
-    let mut pref = String::new();
     match s.len() {
         1 => format!("1/{}", s),
         2 => format!("2/{}", s),
@@ -125,6 +127,7 @@ fn get_crate_info_as_json(
     }
 }
 
+#[allow(unused_variables)]
 fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
     #[cfg(feature = "verify_crates")]
     // Instantiate the client.
@@ -140,6 +143,7 @@ fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
                     bail!("unexpected format of dependency table");
                 }
                 toml_edit::Item::Value(v) => {
+                    #[allow(unused_variables)]
                     let did_remove = sanitize_dependency_entry(v)?;
 
                     #[cfg(feature = "verify_crates")]
