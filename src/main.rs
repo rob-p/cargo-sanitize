@@ -57,8 +57,12 @@ struct Cli {
     validate_type: Mode,
 }
 
+/// The set of keys that are removed during dependency rewriting
 const KEYS_TO_REMOVE: [&str; 5] = ["git", "tag", "branch", "rev", "path"];
 
+/// Sanitize an individual dependency entry. Note, this only makes sense
+/// if the entry itself is an InlineTable; otherwise what is present must
+/// simply be a version constraint.
 fn sanitize_dependency_entry(ent: &mut toml_edit::Value) -> anyhow::Result<bool> {
     let mut did_rewrite = false;
     match ent {
@@ -202,15 +206,21 @@ fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    // set the logging level
     if cli.verbose {
         simple_logger::init_with_level(log::Level::Info)?;
     } else {
         simple_logger::init_with_level(log::Level::Warn)?;
     }
 
+    // read the entire Cargo.toml file into a string
     let orig_str = std::fs::read_to_string(cli.input_file)?;
+    // parse it as a toml document
     let mut toml_contents = orig_str.parse::<DocumentMut>()?;
 
+    // ensure the user didn't pass `--validate-types rewritten` or
+    // `--validate-types all` if the `validate_crates` feature isn't
+    // enabled.
     #[cfg(not(feature = "validate_crates"))]
     match cli.validate_type {
         Mode::All | Mode::Rewritten => {
@@ -219,13 +229,18 @@ fn main() -> anyhow::Result<()> {
         Mode::None => {}
     }
 
+    // perform the sanitization of the cargo file
     sanitize(&mut toml_contents, cli.validate_type)?;
 
+    // if the user passed an explicit output path, then
+    // write to that output path here.
     if let Some(out_path) = cli.output {
         let mut ofile = std::fs::File::create(out_path)?;
         ofile.write_all(toml_contents.to_string().as_bytes())?;
     } else {
+        // otherwise, write the results to stdout
         println!("{}", toml_contents);
     }
+
     Ok(())
 }
