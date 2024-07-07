@@ -143,8 +143,8 @@ fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
                     let did_remove = sanitize_dependency_entry(v)?;
 
                     #[cfg(feature = "verify_crates")]
-                    if did_remove
-                        && (validate_type == Mode::Rewritten || validate_type == Mode::All)
+                    if validate_type == Mode::All
+                        || (did_remove && (validate_type == Mode::Rewritten))
                     {
                         let ver = get_crate_version(v)?;
                         if let Ok(a) = get_crate_info_as_json(_k.to_string(), &agent) {
@@ -180,6 +180,15 @@ fn main() -> anyhow::Result<()> {
 
     let orig_str = std::fs::read_to_string(cli.input_file)?;
     let mut toml_contents = orig_str.parse::<DocumentMut>()?;
+
+    #[cfg(not(feature = "verify_crates"))]
+    match cli.validate_type {
+        Mode::All | Mode::Rewritten => {
+            bail!("cannot validate crates without the `validate` feature.")
+        }
+        Mode::None => {}
+    }
+
     sanitize(&mut toml_contents, cli.validate_type)?;
 
     if let Some(out_path) = cli.output {
