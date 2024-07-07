@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail};
-use clap::Parser;
+use clap::{Parser, ValueEnum};
+use std::fmt;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use toml_edit::{DocumentMut, Value};
@@ -8,6 +9,32 @@ use toml_edit::{DocumentMut, Value};
 use std::time::Duration;
 #[cfg(feature = "verify_crates")]
 use ureq::{Agent, AgentBuilder};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum Mode {
+    /// Don't validate any crates
+    None,
+    /// Only validate re-written dependencies
+    Rewritten,
+    /// Validate all dependencies
+    All,
+}
+
+impl Default for Mode {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::None => write!(f, "none"),
+            Self::Rewritten => write!(f, "rewritten"),
+            Self::All => write!(f, "all"),
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -18,6 +45,10 @@ struct Cli {
     /// The `Cargo.toml` file to sanitize
     #[arg(long, short = 'o')]
     output: Option<PathBuf>,
+
+    /// Validate the existence of all dependencies on crates.io
+    #[arg(long, default_value_t = Mode::None, value_parser = clap::builder::EnumValueParser::<Mode>::new())]
+    validate_type: Mode,
 }
 
 const KEYS_TO_REMOVE: [&str; 5] = ["git", "tag", "branch", "rev", "path"];
@@ -43,18 +74,19 @@ fn sanitize_dependency_entry(ent: &mut toml_edit::Value) -> anyhow::Result<bool>
 }
 
 fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
-    let mut did_remove = false;
     match ent {
         Value::String(s) => Ok(s.to_string()),
         Value::Integer(i) => Ok(i.to_string()),
         Value::Float(f) => Ok(f.to_string()),
+        Value::InlineTable(t) => Ok(String::from(
+            t.get("version")
+                .unwrap_or(&toml_edit::Value::from("COULD NOT FIND VERSION"))
+                .as_str()
+                .unwrap(),
+        )),
         Value::Boolean(_b) => Err(anyhow!("cannot convert boolean to version string")),
         Value::Datetime(_d) => Err(anyhow!("cannot convert datetime to version string")),
         Value::Array(_a) => Err(anyhow!("cannont convert array to version string")),
-        Value::InlineTable(t) => Ok(format!(
-            "\"{}\"",
-            t.get("version").unwrap().as_str().unwrap()
-        )),
     }
 }
 
@@ -93,7 +125,7 @@ fn get_crate_info_as_json(
     }
 }
 
-fn sanitize(doc: &mut DocumentMut) -> anyhow::Result<()> {
+fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
     #[cfg(feature = "verify_crates")]
     // Instantiate the client.
     let agent = ureq::AgentBuilder::new()
@@ -111,22 +143,23 @@ fn sanitize(doc: &mut DocumentMut) -> anyhow::Result<()> {
                     let did_remove = sanitize_dependency_entry(v)?;
 
                     #[cfg(feature = "verify_crates")]
-                    if did_remove {
+                    if did_remove
+                        && (validate_type == Mode::Rewritten || validate_type == Mode::All)
+                    {
                         let ver = get_crate_version(v)?;
-                        let a = get_crate_info_as_json(_k.to_string(), &agent)?;
-                        for x in a.iter() {
-                            let fetched_ver = x.get("vers").unwrap().to_string();
-                            if ver == fetched_ver {
-                                eprintln!(
-                                    "observed_version: {}, fetched_version {}",
-                                    ver, fetched_ver
-                                );
-                            } else {
-                                eprintln!(
-                                    "observed_version: [{}] != fetched_version [{}]",
-                                    ver, fetched_ver
-                                );
+                        if let Ok(a) = get_crate_info_as_json(_k.to_string(), &agent) {
+                            for x in a.iter() {
+                                let fetched_ver =
+                                    x.get("vers").unwrap().to_string().replace("\"", "");
+                                if ver == fetched_ver {
+                                    eprintln!(
+                                        "Verified crate [{}] : observed_version: {} = fetched_version {}",
+                                        _k, ver, fetched_ver
+                                    );
+                                }
                             }
+                        } else {
+                            bail!("ERROR :: cannot find crate {} on crates.io index!", _k);
                         }
                     }
                 }
@@ -147,7 +180,7 @@ fn main() -> anyhow::Result<()> {
 
     let orig_str = std::fs::read_to_string(cli.input_file)?;
     let mut toml_contents = orig_str.parse::<DocumentMut>()?;
-    sanitize(&mut toml_contents)?;
+    sanitize(&mut toml_contents, cli.validate_type)?;
 
     if let Some(out_path) = cli.output {
         let mut ofile = std::fs::File::create(out_path)?;
