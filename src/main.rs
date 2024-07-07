@@ -5,13 +5,13 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use toml_edit::{DocumentMut, Value};
 
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 use anyhow::anyhow;
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 use semver::{Version, VersionReq};
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 use std::time::Duration;
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 use ureq::AgentBuilder;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -60,7 +60,7 @@ struct Cli {
 const KEYS_TO_REMOVE: [&str; 5] = ["git", "tag", "branch", "rev", "path"];
 
 fn sanitize_dependency_entry(ent: &mut toml_edit::Value) -> anyhow::Result<bool> {
-    let mut did_remove = false;
+    let mut did_rewrite = false;
     match ent {
         Value::String(_s) => { /* do nothing */ }
         Value::Integer(_i) => { /* do nothing */ }
@@ -71,15 +71,15 @@ fn sanitize_dependency_entry(ent: &mut toml_edit::Value) -> anyhow::Result<bool>
         Value::InlineTable(t) => {
             for k in KEYS_TO_REMOVE {
                 if let Some(_v) = t.remove(k) {
-                    did_remove = true;
+                    did_rewrite = true;
                 }
             }
         }
     }
-    Ok(did_remove)
+    Ok(did_rewrite)
 }
 
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
     let ver_str = match ent {
         Value::String(s) => Ok(s.to_string()),
@@ -102,7 +102,7 @@ fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
     }
 }
 
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 fn crate_key(s: String) -> anyhow::Result<String> {
     match s.len() {
         1 => Ok(format!("1/{}", s)),
@@ -113,7 +113,7 @@ fn crate_key(s: String) -> anyhow::Result<String> {
     }
 }
 
-#[cfg(feature = "verify_crates")]
+#[cfg(feature = "validate_crates")]
 fn get_crate_info_as_json(
     key: String,
     agent: &ureq::Agent,
@@ -138,7 +138,7 @@ fn get_crate_info_as_json(
 
 #[allow(unused_variables)]
 fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
-    #[cfg(feature = "verify_crates")]
+    #[cfg(feature = "validate_crates")]
     // Instantiate the client.
     let agent = AgentBuilder::new()
         .timeout_read(Duration::from_secs(5))
@@ -152,12 +152,11 @@ fn sanitize(doc: &mut DocumentMut, validate_type: Mode) -> anyhow::Result<()> {
                     bail!("unexpected format of dependency table");
                 }
                 toml_edit::Item::Value(v) => {
-                    #[allow(unused_variables)]
-                    let did_remove = sanitize_dependency_entry(v)?;
+                    let did_rewrite = sanitize_dependency_entry(v)?;
 
-                    #[cfg(feature = "verify_crates")]
+                    #[cfg(feature = "validate_crates")]
                     if validate_type == Mode::All
-                        || (did_remove && (validate_type == Mode::Rewritten))
+                        || (did_rewrite && (validate_type == Mode::Rewritten))
                     {
                         let ver = get_crate_version(v)?;
                         let req = VersionReq::parse(&ver).map_err(|e| {
@@ -212,7 +211,7 @@ fn main() -> anyhow::Result<()> {
     let orig_str = std::fs::read_to_string(cli.input_file)?;
     let mut toml_contents = orig_str.parse::<DocumentMut>()?;
 
-    #[cfg(not(feature = "verify_crates"))]
+    #[cfg(not(feature = "validate_crates"))]
     match cli.validate_type {
         Mode::All | Mode::Rewritten => {
             bail!("cannot validate crates without the `validate` feature.")

@@ -25,7 +25,7 @@ log = "0.4.22"
 #crates_io_api = { version = "0.11.0", features = ["rustls"], optional = true }
 
 [features]
-verify_crates = ["dep:ureq", "dep:semver"]
+validate_crates = ["dep:ureq", "dep:semver"]
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
