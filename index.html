@@ -295,6 +295,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#differences-from-related-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Differences from related tools
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -356,6 +365,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#differences-from-related-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Differences from related tools
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -397,6 +415,36 @@ is also available downstream in the official registry.  </p>
 (by passing <code>--validate-type rewritten</code>).  <strong>Note</strong>: Even if you enable this feature, the default value for the 
 <code>--validate-type</code> option is <code>none</code>, which will not perform validation.  This behavior is designed so that <code>cargo-sanitize</code>
 need not require network access by default to sanitize the input <code>Cargo.toml</code> file.</p>
+<h2 id="differences-from-related-tools">Differences from related tools</h2>
+<p>The functionality provided by <code>cargo-sanitize</code> is very tightly-scoped.  Related (and more general) functionality is provided by 
+the <a href="https://doc.rust-lang.org/cargo/commands/cargo-publish.html"><code>cargo publish</code></a> and <a href="https://doc.rust-lang.org/cargo/commands/cargo-package.html"><code>cargo package</code></a> comamnds. 
+Specifically, the sole purpose of <code>cargo-sanitize</code> is to rewrite your <code>Cargo.toml</code> file so that no dependencies absent from the downstream registry (i.e. <code>crates.io</code>) are present.<br />
+Therefore:</p>
+<ul>
+<li>
+<p>It does <em>not</em> attempt to build your project. If your requirements are not properly constrained by the stated version of the dependenices it is 
+  possible that moving from the path dependency to the registry dependency could break the build.  <strong>Note</strong>: <code>cargo-sanitize</code> <em>can</em>
+  "nominally" verify version constraints, and as long as your application abides by these, this should not be a problem.</p>
+</li>
+<li>
+<p>It does <em>not</em> attempt to "normalize" or re-organize your <code>Cargo.toml</code> file in any way.  Specifically, <code>cargo-sanitize</code> relies
+  on the <a href="https://crates.io/crates/toml_edit"><code>toml_edit</code></a> crate, and so, apart from the removal of path dependencies, it attempts to
+  retain the original formatting of the <code>Cargo.toml</code> file as much as possible. </p>
+</li>
+<li>
+<p>It does <em>not</em> inspect or touch any other files in your project. It will not attempt to create a package of your project (either as a tarball or a <code>.crate</code> file).
+  It will not read or write other files in your project directory or workspace.  It can be used to <em>only</em> sanitize the <code>Cargo.toml</code> file --- of course, this 
+  means it is the only thing that it <em>can</em> do.</p>
+</li>
+<li>
+<p>It <em>can</em> work in a completely offline mode; rewriting the <code>Cargo.toml</code> file without any access to the network.  Of course, in this case, there is 
+  no validation performed that the rewritten dependencies exist in the downstream registry, and you are therefore entirely responsible for guaranteeing
+  that yourself.</p>
+</li>
+</ul>
+<p>If you are looking to do more than to <em>simply</em> sanitize your <code>Cargo.toml</code> file, and are looking for more robust or fully-fledged functionality, 
+then you are likely interested in the the <a href="https://doc.rust-lang.org/cargo/commands/cargo-publish.html"><code>cargo publish</code></a> or 
+<a href="https://doc.rust-lang.org/cargo/commands/cargo-package.html"><code>cargo package</code></a> comamnds. </p>
 
 
 
