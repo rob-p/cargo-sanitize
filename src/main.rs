@@ -83,6 +83,10 @@ fn sanitize_dependency_entry(ent: &mut toml_edit::Value) -> anyhow::Result<bool>
     Ok(did_rewrite)
 }
 
+/// Get the version information associated with a crate dependency
+/// (provided as a [toml_edit::Value]).  The version string is returned
+/// as a string, without the associated "decoration" (i.e. without the
+/// associated quotes).
 #[cfg(feature = "validate_crates")]
 fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
     let ver_str = match ent {
@@ -106,6 +110,8 @@ fn get_crate_version(ent: &mut toml_edit::Value) -> anyhow::Result<String> {
     }
 }
 
+/// Given the name of a crate, returns the corresponding path according to the
+/// sparse format specification of index.crates.io.
 #[cfg(feature = "validate_crates")]
 fn crate_key(s: String) -> anyhow::Result<String> {
     match s.len() {

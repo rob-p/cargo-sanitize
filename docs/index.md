@@ -37,3 +37,30 @@ If you install `cargo-sanitize` with this feature, then you can use the `--valid
 `--validate-type` option is `none`, which will not perform validation.  This behavior is designed so that `cargo-sanitize`
 need not require network access by default to sanitize the input `Cargo.toml` file.
 
+
+## Differences from related tools
+
+The functionality provided by `cargo-sanitize` is very tightly-scoped.  Related (and more general) functionality is provided by 
+the [`cargo publish`](https://doc.rust-lang.org/cargo/commands/cargo-publish.html) and [`cargo package`](https://doc.rust-lang.org/cargo/commands/cargo-package.html) comamnds. 
+Specifically, the sole purpose of `cargo-sanitize` is to rewrite your `Cargo.toml` file so that no dependencies absent from the downstream registry (i.e. `crates.io`) are present.  
+Therefore:
+
+  - It does *not* attempt to build your project. If your requirements are not properly constrained by the stated version of the dependenices it is 
+  possible that moving from the path dependency to the registry dependency could break the build.  **Note**: `cargo-sanitize` _can_
+  "nominally" verify version constraints, and as long as your application abides by these, this should not be a problem.
+
+  - It does *not* attempt to "normalize" or re-organize your `Cargo.toml` file in any way.  Specifically, `cargo-sanitize` relies
+  on the [`toml_edit`](https://crates.io/crates/toml_edit) crate, and so, apart from the removal of path dependencies, it attempts to
+  retain the original formatting of the `Cargo.toml` file as much as possible. 
+
+  - It does *not* inspect or touch any other files in your project. It will not attempt to create a package of your project (either as a tarball or a `.crate` file).
+  It will not read or write other files in your project directory or workspace.  It can be used to *only* sanitize the `Cargo.toml` file --- of course, this 
+  means it is the only thing that it *can* do.
+
+  - It *can* work in a completely offline mode; rewriting the `Cargo.toml` file without any access to the network.  Of course, in this case, there is 
+  no validation performed that the rewritten dependencies exist in the downstream registry, and you are therefore entirely responsible for guaranteeing
+  that yourself.
+
+If you are looking to do more than to *simply* sanitize your `Cargo.toml` file, and are looking for more robust or fully-fledged functionality, 
+then you are likely interested in the the [`cargo publish`](https://doc.rust-lang.org/cargo/commands/cargo-publish.html) or 
+[`cargo package`](https://doc.rust-lang.org/cargo/commands/cargo-package.html) comamnds. 
